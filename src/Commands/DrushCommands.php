@@ -43,9 +43,10 @@ class DrushCommands extends OriginalDrushCommands {
    *
    * @command syncer:import
    * @validate-module-enabled syncer
-   * @aliases snim snex
+   * @aliases snim
    */
-  public function import() {
+  public function import($options = ['type' => NULL]) {
+    $this->io()->writeln($options['type']);
     $this->io()->success(sprintf('%d contacts updated.', $count));
   }
 
