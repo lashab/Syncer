@@ -1,0 +1,5 @@
+name: Syncer
+type: module
+description: 'Import and export content.'
+package: Syncer
+core: '8.x'
