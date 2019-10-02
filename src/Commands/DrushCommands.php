@@ -6,6 +6,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Database\Connection;
 use Drush\Commands\DrushCommands as OriginalDrushCommands;
 use Symfony\Component\Yaml\Yaml;
+use Drupal\syncer\BatchExport;
+use Drupal\Component\Utility\Unicode;
 
 /**
  * Drush commands.
@@ -51,6 +53,8 @@ class DrushCommands extends OriginalDrushCommands {
       return $this->io()->error('type is required');
     }
 
+    $operations = [];
+
     try {
       /** @var mixed $entity_storage */
       $entity_storage = $this->entityTypeManager->getStorage($type);
@@ -62,33 +66,25 @@ class DrushCommands extends OriginalDrushCommands {
       }
 
       $data = $query->execute();
-      $operations = [];
 
       foreach ($data as $id) {
         /** @var mixed $entity_storage */
         $operations[] = [
-          
+          [BatchExport::class, 'process'],
+          [$id, $entity_storage],
         ];
       }
-
-      dump($operations);
     }
     catch (\Exception $e) {
       $this->io()->error($e);
     }
 
-    $batch = [
-      'title' => t('Updating @num node(s)', ['@num' => $numOperations]),
+    batch_set([
       'operations' => $operations,
-      'finished' => '\Drupal\drush9_batch_processing\BatchService::processMyNodeFinished',
-    ];
-
-    batch_set($batch);
+      'finished' => [BatchExport::class, 'finished'],
+    ]);
 
     drush_backend_batch_process();
-
-
-    //$this->io()->success(sprintf('%d contacts updated.', $count));
   }
 
 }
