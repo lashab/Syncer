@@ -5,6 +5,7 @@ namespace Drupal\syncer\Commands;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Database\Connection;
 use Drush\Commands\DrushCommands as OriginalDrushCommands;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Drush commands.
@@ -39,15 +40,55 @@ class DrushCommands extends OriginalDrushCommands {
   }
 
   /**
-   * Import content.
+   * Export content.
    *
-   * @command syncer:import
+   * @command syncer:export
    * @validate-module-enabled syncer
-   * @aliases snim
+   * @aliases se
    */
-  public function import($options = ['type' => NULL]) {
-    $this->io()->writeln($options['type']);
-    $this->io()->success(sprintf('%d contacts updated.', $count));
+  public function export($type = '', $options = ['type' => NULL]) {
+    if (!$type || !$options['type']) {
+      return $this->io()->error('type is required');
+    }
+
+    try {
+      /** @var mixed $entity_storage */
+      $entity_storage = $this->entityTypeManager->getStorage($type);
+      /** @var \Drupal\Core\Entity\Query\Sql\Query $query */
+      $query = $entity_storage->getQuery();
+
+      if (isset($options['type']) && $options['type']) {
+        $query->condition('type', $options['type']);
+      }
+
+      $data = $query->execute();
+      $operations = [];
+
+      foreach ($data as $id) {
+        /** @var mixed $entity_storage */
+        $operations[] = [
+          
+        ];
+      }
+
+      dump($operations);
+    }
+    catch (\Exception $e) {
+      $this->io()->error($e);
+    }
+
+    $batch = [
+      'title' => t('Updating @num node(s)', ['@num' => $numOperations]),
+      'operations' => $operations,
+      'finished' => '\Drupal\drush9_batch_processing\BatchService::processMyNodeFinished',
+    ];
+
+    batch_set($batch);
+
+    drush_backend_batch_process();
+
+
+    //$this->io()->success(sprintf('%d contacts updated.', $count));
   }
 
 }
