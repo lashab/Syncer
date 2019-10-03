@@ -49,7 +49,7 @@ class DrushCommands extends OriginalDrushCommands {
    * @aliases se
    */
   public function export($type = '', $options = ['type' => NULL]) {
-    if (!$type || !$options['type']) {
+    if (!$type) {
       return $this->io()->error('type is required');
     }
 
