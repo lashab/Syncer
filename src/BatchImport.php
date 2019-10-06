@@ -16,9 +16,32 @@ class BatchImport implements BatchInterface {
    */
   public function process($content, $entity_storage, &$context) {
     try {
-      $entity_storage->create($content)->save();
+      $id = $entity_storage->getEntityType()->getKeys()['id'];
+      $id = $entity_storage->getQuery()->condition($id, $content[$id])->execute();
+
+      if (!$id) {
+        $type = $entity_storage->getEntityType()->id();
+        /** @var mixed $entity */
+        $entity = $entity_storage->create($content);
+        if ($entity->save()) {
+          $context['results'][] = $entity;
+          $context['message'] = t('Import succeed @type - @title', [
+            '@type' => $type,
+            '@title' => $entity->label(),
+          ]);
+        }
+      }
+      else {
+        $entity = $entity_storage->load($id);
+        $context['message'] = t('Import failed @type - @title', [
+          '@type' => $type,
+          '@title' => $entity->label(),
+        ]); 
+      }
     }
-    catch (\Exception $e) {}
+    catch (\Exception $e) {
+
+    }
   }
 
   /**
@@ -26,9 +49,13 @@ class BatchImport implements BatchInterface {
    */
   public function finished($success, array $results, array $operations) {
     $messenger = \Drupal::messenger();
+    $count = count($results);
 
-    if ($success) {
+    if ($success && $count) {
       $messenger->addMessage(t('@count entity has been imported successfully.', ['@count' => count($results)]));
+    }
+    else {
+      $messenger->addMessage(t('nothing to import'));
     }
   }
 

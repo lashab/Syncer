@@ -48,7 +48,7 @@ class DrushCommands extends OriginalDrushCommands {
    *
    * @command syncer:export
    * @validate-module-enabled syncer
-   * @aliases sse
+   * @aliases snce
    */
   public function export($type = '', $options = ['type' => NULL]) {
     if (!$type) {
@@ -95,7 +95,7 @@ class DrushCommands extends OriginalDrushCommands {
    *
    * @command syncer:import
    * @validate-module-enabled syncer
-   * @aliases ssi
+   * @aliases snci
    */
   public function import($type) {
     /** @var mixed $entity_storage */
@@ -118,21 +118,15 @@ class DrushCommands extends OriginalDrushCommands {
 
     for ($i = 0; $i < $count; $i++) {
       if ($stat = $zip->statIndex($i)) {
-        $content = $zip->getStream($stat['name']);
-
-        while (!feof($content)) {
-          $data .= fread($content, 2);
-        }
-
+        $content = $zip->getStream($stat['name']);      
         $operations[] = [
           [BatchImport::class, 'process'],
-          [Yaml::parse($data), $entity_storage],
+          [Yaml::parse(stream_get_contents($content)), $entity_storage],
         ];
       }
     }
 
     $zip->close();
-
 
     batch_set([
       'operations' => $operations,
