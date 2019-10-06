@@ -14,14 +14,14 @@ class BatchExport implements BatchInterface {
   /**
    * {@inheritdoc}
    */
-  public function process(int $id, $entity_storage, &$context) {
-    $data = $entity_storage->load($id)->toArray();
+  public function process($content, $entity_storage, &$context) {
+    $data = $entity_storage->load($content)->toArray();
     $type = $entity_storage->getEntityType()->id();
     $zip = new ZipArchive();
-    $zip->open(dirname(DRUPAL_ROOT . '../') . '/content/sync/content.zip', ZipArchive::CREATE);
+    $zip->open(dirname(DRUPAL_ROOT . '../') . '/content/sync/' . $type . '.zip', ZipArchive::CREATE);
 
-    if ($zip->addFromString(sprintf('%s-%d.yml', $type, $id), Yaml::dump($data, 2, 2))) {
-      $context['results'][] = $id;
+    if ($zip->addFromString(sprintf('%s-%s.yml', $type, $content), Yaml::dump($data, 2, 2))) {
+      $context['results'][] = $content;
       $context['message'] = t('Export @type - @id', [
         '@type' => $type,
         '@id' => $id,

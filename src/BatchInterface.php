@@ -10,12 +10,14 @@ interface BatchInterface {
   /**
    * Process batch operations.
    * 
-   * @param int $id
-   *   A node id.
+   * @param mixed $content
+   *   A data to be processed.
+   * @param mixed $entity_storage
+   *   The entity type storage.
    * @param object $context
    *   A batch context.
    */
-  public function process(int $id, $entity_storage, &$context);
+  public function process($content, $entity_storage, &$context);
 
   /**
    * Batch finish handler.

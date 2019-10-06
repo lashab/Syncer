@@ -7,7 +7,9 @@ use Drupal\Core\Database\Connection;
 use Drush\Commands\DrushCommands as OriginalDrushCommands;
 use Symfony\Component\Yaml\Yaml;
 use Drupal\syncer\BatchExport;
+use Drupal\syncer\BatchImport;
 use Drupal\Component\Utility\Unicode;
+use ZipArchive;
 
 /**
  * Drush commands.
@@ -46,7 +48,7 @@ class DrushCommands extends OriginalDrushCommands {
    *
    * @command syncer:export
    * @validate-module-enabled syncer
-   * @aliases se
+   * @aliases sse
    */
   public function export($type = '', $options = ['type' => NULL]) {
     if (!$type) {
@@ -82,6 +84,59 @@ class DrushCommands extends OriginalDrushCommands {
     batch_set([
       'operations' => $operations,
       'finished' => [BatchExport::class, 'finished'],
+    ]);
+
+    drush_backend_batch_process();
+  }
+
+
+  /**
+   * Import content.
+   *
+   * @command syncer:import
+   * @validate-module-enabled syncer
+   * @aliases ssi
+   */
+  public function import($type) {
+    /** @var mixed $entity_storage */
+    $entity_storage = $this->entityTypeManager->getStorage($type);
+
+    $zip_dir = dirname(DRUPAL_ROOT . '../') . '/content/sync/' . $type . '.zip';
+
+    if (!$zip_dir) {
+      return $this->io->warning($zip_dir . ' not found');
+    }
+
+    /** @var \ZipArchive $zip */
+    $zip = new ZipArchive();
+    $zip->open($zip_dir);
+    $count = $zip->numFiles;
+
+    if (!$count) {
+      return $this->io()->warning('nothing to import');
+    }
+
+    for ($i = 0; $i < $count; $i++) {
+      if ($stat = $zip->statIndex($i)) {
+        $content = $zip->getStream($stat['name']);
+
+        while (!feof($content)) {
+          $data .= fread($content, 2);
+        }
+
+        $operations[] = [
+          [BatchImport::class, 'process'],
+          [Yaml::parse($data), $entity_storage],
+        ];
+      }
+    }
+
+    $zip->close();
+
+
+    batch_set([
+      'operations' => $operations,
+      'finished' => [BatchImport::class, 'finished'],
     ]);
 
     drush_backend_batch_process();
