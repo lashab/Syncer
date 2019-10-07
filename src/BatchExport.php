@@ -15,24 +15,32 @@ class BatchExport implements BatchInterface {
    * {@inheritdoc}
    */
   public function process($content, $entity_storage, &$context) {
-    /** @var mixed $entity */
-    $entity = $entity_storage->load($content);
-    $data = $entity->toArray();
-    $type = $entity_storage->getEntityType()->id();
+    try {
+      /** @var mixed $entity */
+      $entity = $entity_storage->load($content);
+      $data = $entity->toArray();
+      $type = $entity_storage->getEntityType()->id();
+      $zip_dir = dirname(DRUPAL_ROOT . '../') . '/syncer/content';
 
-    /** @var ZIpArchive $zip */
-    $zip = new ZipArchive();
-    $zip->open(dirname(DRUPAL_ROOT . '../') . '/content/sync/' . $type . '.zip', ZipArchive::CREATE);
+      if (file_prepare_directory($zip_dir, FILE_CREATE_DIRECTORY)) {
+        /** @var ZIpArchive $zip */
+        $zip = new ZipArchive();
+        $zip->open(sprintf('%s/%s.zip', $zip_dir, $type), ZipArchive::CREATE);
 
-    if ($zip->addFromString(sprintf('%s-%s.yml', $type, $content), Yaml::dump($data, 2, 2))) {
-      $context['results'][] = $content;
-      $context['message'] = t('Export @type - @title', [
-        '@type' => $type,
-        '@title' => $entity->label(),
-      ]);
+        if ($zip->addFromString(sprintf('%s-%s.yml', $type, $content), Yaml::dump($data, 2, 2))) {
+          $context['results'][] = $content;
+          $context['message'] = t('Export: @title', [
+            '@type' => $type,
+            '@title' => $entity->label(),
+          ]);
+        }
+
+        $zip->close();
+      }
     }
+    catch (\Exception $e) {
 
-    $zip->close();
+    }
   }
 
   /**
@@ -42,7 +50,7 @@ class BatchExport implements BatchInterface {
     $messenger = \Drupal::messenger();
 
     if ($success) {
-      $messenger->addMessage(t('@count entity has been exported successfully.', ['@count' => count($results)]));
+      $messenger->addMessage(t('@count entity has been exported.', ['@count' => count($results)]));
     }
   }
 

@@ -101,9 +101,9 @@ class DrushCommands extends OriginalDrushCommands {
     /** @var mixed $entity_storage */
     $entity_storage = $this->entityTypeManager->getStorage($type);
 
-    $zip_dir = dirname(DRUPAL_ROOT . '../') . '/content/sync/' . $type . '.zip';
+    $zip_dir = dirname(DRUPAL_ROOT . '../') . '/syncer/content/' . $type . '.zip';
 
-    if (!$zip_dir) {
+    if (!file_exists($zip_dir)) {
       return $this->io->warning($zip_dir . ' not found');
     }
 
@@ -118,7 +118,7 @@ class DrushCommands extends OriginalDrushCommands {
 
     for ($i = 0; $i < $count; $i++) {
       if ($stat = $zip->statIndex($i)) {
-        $content = $zip->getStream($stat['name']);      
+        $content = $zip->getStream($stat['name']);   
         $operations[] = [
           [BatchImport::class, 'process'],
           [Yaml::parse(stream_get_contents($content)), $entity_storage],

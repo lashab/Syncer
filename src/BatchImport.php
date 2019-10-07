@@ -17,23 +17,23 @@ class BatchImport implements BatchInterface {
   public function process($content, $entity_storage, &$context) {
     try {
       $id = $entity_storage->getEntityType()->getKeys()['id'];
-      $id = $entity_storage->getQuery()->condition($id, $content[$id])->execute();
+      $ids = $entity_storage->getQuery()->condition($id, reset($content[$id][0]))->execute();
 
-      if (!$id) {
+      if (!$ids) {
         $type = $entity_storage->getEntityType()->id();
         /** @var mixed $entity */
         $entity = $entity_storage->create($content);
         if ($entity->save()) {
           $context['results'][] = $entity;
-          $context['message'] = t('Import succeed @type - @title', [
+          $context['message'] = t('Import @title', [
             '@type' => $type,
             '@title' => $entity->label(),
           ]);
         }
       }
       else {
-        $entity = $entity_storage->load($id);
-        $context['message'] = t('Import failed @type - @title', [
+        $entity = $entity_storage->load(reset($ids));
+        $context['message'] = t('Import not succeed (reason: content exists) @title', [
           '@type' => $type,
           '@title' => $entity->label(),
         ]); 
@@ -52,7 +52,7 @@ class BatchImport implements BatchInterface {
     $count = count($results);
 
     if ($success && $count) {
-      $messenger->addMessage(t('@count entity has been imported successfully.', ['@count' => count($results)]));
+      $messenger->addMessage(t('@count entity has been imported.', ['@count' => count($results)]));
     }
     else {
       $messenger->addMessage(t('nothing to import'));
