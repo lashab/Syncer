@@ -1,0 +1,22 @@
+syncer.import:
+  path: '/admin/content/syncer/import'
+  defaults:
+    _title: 'Import content'
+    _form: '\Drupal\syncer\Form\Import'
+  requirements:
+    _permission: 'administer syncer'
+
+syncer.export:
+  path: '/admin/content/syncer/export'
+  defaults:
+    _title: 'Export content'
+    _form: '\Drupal\syncer\Form\Export'
+  requirements:
+    _permission: 'administer syncer'
+
+syncer.export_data:
+  path: '/admin/content/syncer/export/{name}'
+  defaults:
+    _controller: '\Drupal\syncer\Controller\Export::data'
+  requirements:
+    _permission: 'administer syncer'

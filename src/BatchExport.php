@@ -2,7 +2,7 @@
 
 namespace Drupal\syncer;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Url;
 use Symfony\Component\Yaml\Yaml;
 use ZipArchive;
 
@@ -14,29 +14,21 @@ class BatchExport implements BatchInterface {
   /**
    * {@inheritdoc}
    */
-  public function process($content, $entity_storage, &$context) {
+  public static function process($entity_type, $data, &$context) {
     try {
-      /** @var mixed $entity */
-      $entity = $entity_storage->load($content);
-      $data = $entity->toArray();
-      $type = $entity_storage->getEntityType()->id();
-      $zip_dir = dirname(DRUPAL_ROOT . '../') . '/syncer/content';
+      /** @var \ZipArchive $zip */
+      $zip = new ZipArchive();
+      $zip->open(\Drupal::service('file_system')->realpath("public://$entity_type.zip"));
 
-      if (file_prepare_directory($zip_dir, FILE_CREATE_DIRECTORY)) {
-        /** @var ZIpArchive $zip */
-        $zip = new ZipArchive();
-        $zip->open(sprintf('%s/%s.zip', $zip_dir, $type), ZipArchive::CREATE);
-
-        if ($zip->addFromString(sprintf('%s-%s.yml', $type, $content), Yaml::dump($data, 2, 2))) {
-          $context['results'][] = $content;
-          $context['message'] = t('Export: @title', [
-            '@type' => $type,
-            '@title' => $entity->label(),
-          ]);
-        }
-
-        $zip->close();
+      if ($zip->addFromString(sprintf('%s.yml', $data->id()), Yaml::dump($data->toArray(), 2, 2))) {
+        $context['results']['content'][] = $data;
+        $context['results']['entity_type'] = $entity_type;
+        $context['message'] = t('Export: @title', [
+          '@title' => $data->label(),
+        ]);
       }
+
+      $zip->close();
     }
     catch (\Exception $e) {
 
@@ -46,11 +38,22 @@ class BatchExport implements BatchInterface {
   /**
    * {@inheritdoc}
    */
-  public function finished($success, array $results, array $operations) {
+  public static function finished($success, array $results, array $operations) {
+    /** @var \Drupal\Core\Messenger\Messenger $messenger */
     $messenger = \Drupal::messenger();
 
-    if ($success) {
-      $messenger->addMessage(t('@count entity has been exported.', ['@count' => count($results)]));
+    if ($success && isset($results['content'], $results['entity_type']) && is_array($results['content'])) {
+      $route = Url::fromRoute('syncer.export_data', [
+        'name' => $results['entity_type'] . '.zip',
+      ]);
+
+      $messenger->addMessage(t('@count content has been exported: <a href="@uri">click here to download file</a>', [
+        '@count' => count($results['content']),
+        '@uri' => $route->toString(),
+      ]));
+    }
+    else {
+      $messenger->addMessage(t('0 content has been exported.'));
     }
   }
 

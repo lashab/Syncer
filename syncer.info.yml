@@ -1,5 +1,6 @@
 name: Syncer
 type: module
-description: 'Import and export content.'
+description: 'Import and export content in YAML format.'
 package: Syncer
+core_version_requirement: ^8 || ^9
 core: '8.x'

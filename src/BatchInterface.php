@@ -9,26 +9,26 @@ interface BatchInterface {
 
   /**
    * Process batch operations.
-   * 
-   * @param mixed $content
+   *
+   * @param string|null $entity_type
+   *   An entity type.
+   * @param mixed $data
    *   A data to be processed.
-   * @param mixed $entity_storage
-   *   The entity type storage.
-   * @param object $context
+   * @param array $context
    *   A batch context.
    */
-  public function process($content, $entity_storage, &$context);
+  public static function process($entity_type, $data, &$context);
 
   /**
    * Batch finish handler.
    *
    * @param bool $success
    *   A boolean indicating whether the batch has completed successfully.
-   * @param mixed $results
+   * @param array $results
    *   The value set in $context['results'] by callback_batch_operation().
    * @param array $operations
    *   Contains the operations that remained unprocessed.
    */
-  public function finished($success, array $results, array $operations);
+  public static function finished($success, array $results, array $operations);
 
 }

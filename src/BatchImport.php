@@ -2,10 +2,6 @@
 
 namespace Drupal\syncer;
 
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Symfony\Component\Yaml\Yaml;
-use ZipArchive;
-
 /**
  * Batch export.
  */
@@ -14,29 +10,22 @@ class BatchImport implements BatchInterface {
   /**
    * {@inheritdoc}
    */
-  public function process($content, $entity_storage, &$context) {
+  public static function process($entity_type, $data, &$context) {
     try {
-      $id = $entity_storage->getEntityType()->getKeys()['id'];
-      $ids = $entity_storage->getQuery()->condition($id, reset($content[$id][0]))->execute();
+      /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $entity_type_manager */
+      $entity_type_manager = \Drupal::entityTypeManager();
+      /** @var \Drupal\Core\Entity\ContentEntityType $entity_definition */
+      $entity_definition = $entity_type_manager->getDefinition($entity_type);
+      $entity_type_bundle_id = $entity_definition->getKey('bundle');
 
-      if (!$ids) {
-        $type = $entity_storage->getEntityType()->id();
-        /** @var mixed $entity */
-        $entity = $entity_storage->create($content);
-        if ($entity->save()) {
-          $context['results'][] = $entity;
-          $context['message'] = t('Import @title', [
-            '@type' => $type,
-            '@title' => $entity->label(),
-          ]);
+      if (isset($data[$entity_type_bundle_id]) && $data[$entity_type_bundle_id]) {
+        $content = $entity_type_manager
+          ->getStorage($entity_type)
+          ->create($data);
+
+        if ($content->save()) {
+          $context['results']['content'][] = $content;
         }
-      }
-      else {
-        $entity = $entity_storage->load(reset($ids));
-        $context['message'] = t('Import not succeed (reason: content exists) @title', [
-          '@type' => $type,
-          '@title' => $entity->label(),
-        ]); 
       }
     }
     catch (\Exception $e) {
@@ -47,15 +36,15 @@ class BatchImport implements BatchInterface {
   /**
    * {@inheritdoc}
    */
-  public function finished($success, array $results, array $operations) {
+  public static function finished($success, array $results, array $operations) {
+    /** @var \Drupal\Core\Messenger\Messenger $messenger */
     $messenger = \Drupal::messenger();
-    $count = count($results);
 
-    if ($success && $count) {
-      $messenger->addMessage(t('@count entity has been imported.', ['@count' => count($results)]));
+    if ($success && isset($results['content'])) {
+      $messenger->addMessage(t('@count content has been imported.', ['@count' => count($results['content'])]));
     }
     else {
-      $messenger->addMessage(t('nothing to import'));
+      $messenger->addMessage(t('0 content has been imported.'));
     }
   }
 

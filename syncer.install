@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the syncer module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function syncer_requirements($phase) {
+  $requirements = [];
+
+  switch ($phase) {
+    case 'install':
+      if (!class_exists('\ZipArchive')) {
+        $requirements[] = [
+          'description' => t('You need to install ZipArchive extension.'),
+          'severity' => REQUIREMENT_ERROR,
+        ];
+      }
+      break;
+  }
+
+  return $requirements;
+}

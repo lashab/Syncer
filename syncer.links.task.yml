@@ -1,0 +1,9 @@
+syncer.import:
+  title: Import
+  route_name: syncer.import
+  base_route: system.admin_content
+
+syncer.export:
+  title: Export
+  route_name: syncer.export
+  base_route: system.admin_content
